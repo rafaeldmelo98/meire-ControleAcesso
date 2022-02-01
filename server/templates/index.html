@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<header>
+    <title>Tela login</title>
+</header>
+
+<body>
+    <form action="{{url_for('login')}}" method="post">
+        <label>Login</label>
+        <input type="text" name="user">
+        <label>Senha</label>
+        <input type="text" name="password">
+        <input type="submit" value="Enviar">
+    </form>
+</body>
+
+</html>
