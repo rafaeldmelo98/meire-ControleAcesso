@@ -6,7 +6,7 @@ app = Flask(__name__)
 conn = sqlite3.connect('database.db')
 conn.execute('''CREATE TABLE IF NOT EXISTS users (user TEXT, password TEXT, key_user TEXT)''')
 conn.execute('''CREATE TABLE IF NOT EXISTS booking_request (num_request TEXT, key_user TEXT, 
-date_request TEXT, accepted INTEGER)''')
+date_request TEXT, accepted INTEGER, start_time_request TEXT, end_time_request TEXT)''')
 conn.close()
 
 
@@ -16,18 +16,26 @@ def home():
     return {'msg': 'Página inicial'}
 
 
-@app.route('/login', methods=['GET'])
+@app.route('/teste', methods=['POST'])
+def teste():
+    if request.method == 'POST':
+        json = request.json
+        return {'recebido':json}
+
+
+@app.route('/login', methods=['POST'])
 def login():
-    if request.method == 'GET':
+    if request.method == 'POST':
         try:
-            user = request.args['user']
-            password = request.args['password']
+            data = request.json
+            user = data['user']
+            password = data['password']
             with sqlite3.connect("database.db") as con:
                 cur = con.cursor()
                 cur.execute("SELECT * FROM users WHERE user=?", (user,))
                 user_db = cur.fetchone()
                 if user_db[1] == password:
-                    msg = 'Usuário logado.'
+                    msg = 'User logged.'
                     login = True
                 else:
                     msg = 'User or password incorrect.'
@@ -41,20 +49,24 @@ def login():
             return {
                 'user': user_db,
                 'msg': msg,
-                'login?': login}
+                'login': login}, 201
 
 
 @app.route('/register', methods=['POST'])
 def register():
     if request.method == 'POST':
         try:
-            user = request.args['user']
-            password = request.args['password']
+            data = request.json
+            user = data['user']
+            password = data['password']
+            key_user = data['key']
+            json = request.json
+            print(json)
 
             with sqlite3.connect("database.db") as con:
                 cur = con.cursor()
-                cur.execute("INSERT INTO users(user, password) \
-                    VALUES(?, ?)", (user, password))
+                cur.execute("INSERT INTO users(user, password, key_user) \
+                    VALUES(?, ?, ?)", (user, password, key_user))
                 con.commit()
                 msg = 'User created!'
         except Exception as e:
@@ -69,15 +81,18 @@ def register():
 def booking():
     if request.method == 'POST':
         try:
-            key_user = request.args['user']
-            data_request = request.args['date_request']
+            data = request.json
+            key_user = data['key']
+            data_request = data['data_request']
+            time_request = data['time_request']
 
             with sqlite3.connect("database.db") as con:
                 cur = con.cursor()
                 cur.execute('SELECT COUNT(*) FROM booking_request')
                 id = cur.fetchone()
-                cur.execute('INSERT INTO booking_request(num_request, key_user, date_request, accepted) \
-                VALUES (?,?,?,0)', ((id+1),key_user,data_request))
+                id = str((int(id[0])+1))
+                cur.execute('INSERT INTO booking_request(num_request, key_user, date_request, time_request, \
+                accepted) VALUES (?,?,?,?,0)', (id,key_user,data_request,time_request))
                 con.commit()
                 msg = 'Date booked!'
         except Exception as e:
@@ -87,7 +102,26 @@ def booking():
             con.close()
             return {'msg': msg}
     if request.method == 'GET':
-        pass
+        try:
+            data = request.json
+            num_request = data['num_request']
+
+            with sqlite3.connect("database.db") as con:
+                cur = con.cursor()
+                cur.execute("SELECT * FROM booking_request WHERE num_request=?", (num_request,))
+                booking_request = cur.fetchone()
+                if booking_request:
+                    msg = 'Request found'
+                else:
+                    msg = 'Request not found'
+        except Exception as e:
+            con.rollback()
+            msg = f"Error while. Error: {e}"
+        finally:
+            con.close()
+            return {
+                'msg': msg, 
+                'request':booking_request}
 
 
 if __name__ == '__main__':
