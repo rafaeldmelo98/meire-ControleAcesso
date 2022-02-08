@@ -113,7 +113,6 @@ def booking():
             else:
                 msg = 'Request not found'
         except Exception as e:
-            con.rollback()
             msg = f"Error while. Error: {e}"
         finally:
             con.close()
@@ -130,7 +129,6 @@ def schedule():
         booking_list = cur.fetchall()
         msg = 'Schedule list.'
     except Exception as e:
-        con.rollback()
         msg = f"Error while. Error: {e}"
     finally:
         con.close()
@@ -138,6 +136,27 @@ def schedule():
             'msg': msg, 
             'request':booking_list}
 
+
+@app.route('/status/<num_request>', methods=['GET'])
+def method_name(num_request):
+    status = 'PENDENTE'
+    con = sqlite3.connect("database.db")
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT accepted FROM booking_request WHERE num_request=?",(num_request,))
+        statusFound = cur.fetchone()
+        msg = 'Status found.'
+        if statusFound[0] == 1:
+            status = 'ACEITO'
+        else:
+            status = 'REJEITADO'
+    except Exception as e:
+        msg = f"Error while. Error: {e}"
+    finally:
+        con.close()
+        return {
+            'msg': msg, 
+            'status':status}
 
 if __name__ == '__main__':
     app.run(debug=True)
