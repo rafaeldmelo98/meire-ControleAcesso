@@ -16,13 +16,6 @@ def home():
     return {'msg': 'Página inicial'}
 
 
-@app.route('/teste', methods=['POST'])
-def teste():
-    if request.method == 'POST':
-        json = request.json
-        return {'recebido':json}
-
-
 @app.route('/login', methods=['POST'])
 def login():
     con = sqlite3.connect("database.db")
@@ -90,7 +83,7 @@ def booking():
             id = cur.fetchone()
             id = str((int(id[0])+1))
             cur.execute('INSERT INTO booking_request(num_request, key_user, date_request, \
-            start_time_request, end_time_request,accepted) VALUES (?,?,?,?,?,0)', 
+            start_time_request, end_time_request,accepted) VALUES (?,?,?,?,?,-1)', 
             (id,key_user,data_request,start_time_request,end_time_request))
             print('Erro3')
             con.commit()
@@ -119,6 +112,7 @@ def booking():
             return {
                 'msg': msg, 
                 'request':booking_request}
+
 
 @app.route('/schedule', methods=['GET'])
 def schedule():
@@ -157,6 +151,29 @@ def method_name(num_request):
         return {
             'msg': msg, 
             'status':status}
+
+
+@app.route('/release')
+def release():
+    con = sqlite3.connect("database.db")
+    data = request.json
+    status = data['status']
+    num_request = data['num_request']
+    try:
+        cur = con.cursor()
+        cur.execute("UPDATE booking_request SET accepted=? WHERE num_request=?",(status, num_request,))
+        con.commit()
+        cur.execute("SELECT * FROM booking_request WHERE num_request=?",(num_request))
+        register = cur.fetchone()
+        msg = 'Status changed.'
+    except Exception as e:
+        msg = f"Error while. Error: {e}"
+    finally:
+        con.close()
+        return {
+            'msg': msg, 
+            'register':register}
+
 
 if __name__ == '__main__':
     app.run(debug=True)
